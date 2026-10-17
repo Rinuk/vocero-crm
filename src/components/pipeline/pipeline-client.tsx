@@ -18,6 +18,7 @@ import type { LossReason, PriorityValue, StageDto } from "@/lib/types";
 import { formatMoneyCents, sumable } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { ContactAvatar } from "@/components/avatar";
+import { useEvents } from "@/components/use-events";
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/components/inbox/helpers";
 import { StageManager } from "./stage-manager";
@@ -80,6 +81,13 @@ export function PipelineClient() {
   useEffect(() => {
     void refetch();
   }, [refetch]);
+
+  useEvents({
+    onConversationUpdated: () => void refetch(),
+    onMessageNew: () => void refetch(),
+    onConversationDeleted: () => void refetch(),
+    onReconnect: () => void refetch(),
+  });
 
   function onDragStart(event: DragStartEvent) {
     const lead = leads.find((l) => l.id === event.active.id);

@@ -7,6 +7,7 @@ import { findContactByIdentity } from "@/server/inbox/identity";
 import { isWindowOpen, windowRemainingMs } from "@/server/inbox/window";
 import { windowMsFor } from "@/server/channels/capabilities";
 import { citasParaContexto } from "@/server/agenda/context";
+import { etapasParaBot } from "@/server/bot/pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export async function GET(req: Request) {
     return apiError(404, "not_found", "Conversación no encontrada");
   }
 
-  const [leadRows, booking] = await Promise.all([
+  const [leadRows, booking, stages] = await Promise.all([
     db
       .select({ lead: schema.lead, stage: schema.pipelineStage })
       .from(schema.lead)
@@ -106,6 +107,7 @@ export async function GET(req: Request) {
       )
       .limit(1),
     citasParaContexto(organizationId, contact.id),
+    etapasParaBot(organizationId),
   ]);
 
   return Response.json({
@@ -139,8 +141,11 @@ export async function GET(req: Request) {
       ),
     },
     lead: leadRows[0]
-      ? { id: leadRows[0].lead.id, stageName: leadRows[0].stage.name }
+      ? { id: leadRows[0].lead.id, stageName: leadRows[0].stage.name,
+          stageId: leadRows[0].stage.id, stageKind: leadRows[0].stage.kind,
+          stagePosition: leadRows[0].stage.position }
       : null,
+    pipeline: { stages },
     /**
      * 015 — Las citas del contacto. FALTA con la agenda apagada (o si no se
      * pudieron leer): un cerebro que no lo recibe no afirma nada sobre citas,

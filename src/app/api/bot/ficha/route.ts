@@ -4,6 +4,7 @@ import { getDb, schema } from "@/lib/db";
 import { apiError, parseBody } from "@/lib/api";
 import { requireBotKey, resolveInstanceOrg } from "@/server/bot/auth";
 import { upsertFicha } from "@/server/bot/ficha";
+import { publish } from "@/server/events/bus";
 
 export const dynamic = "force-dynamic";
 
@@ -51,5 +52,7 @@ export async function PUT(req: Request) {
     ficha: body.data.ficha,
   });
   if (!result) return apiError(404, "not_found", "Contacto no encontrado");
+  publish(organizationId, { type: "conversation.updated",
+    data: { conversation: { id: body.data.conversationId } } });
   return Response.json(result);
 }

@@ -26,13 +26,15 @@ export type MoveResult =
   | { ok: true; lead: LeadRow; changed: boolean }
   | {
       ok: false;
-      reason: "lead_not_found" | "stage_not_found" | "loss_reason_required";
+      reason: "lead_not_found" | "stage_not_found" | "loss_reason_required" | "lead_changed";
     };
 
 export type MoveInput = {
   organizationId: string;
   leadId: string;
   toStageId: string;
+  /** Comparación optimista del cerebro: no pisar un movimiento humano. */
+  expectedStageId?: string;
   /** Posición dentro de la columna destino. */
   position?: number;
   /** Quién lo movió; NULL cuando no fue una persona. */
@@ -79,6 +81,9 @@ export async function moveLeadToStage(input: MoveInput): Promise<MoveResult> {
 
     const current = leadRows[0];
     if (!current) return { ok: false as const, reason: "lead_not_found" as const };
+    if (input.expectedStageId && current.lead.stageId !== input.expectedStageId) {
+      return { ok: false as const, reason: "lead_changed" as const };
+    }
 
     const targetRows = await tx
       .select()
@@ -116,13 +121,14 @@ export async function moveLeadToStage(input: MoveInput): Promise<MoveResult> {
         scoped(
           schema.lead.organizationId,
           input.organizationId,
-          eq(schema.lead.id, input.leadId)
+          eq(schema.lead.id, input.leadId),
+          ...(input.expectedStageId ? [eq(schema.lead.stageId, input.expectedStageId)] : [])
         )
       )
       .returning();
 
     const leadRow = updated[0];
-    if (!leadRow) return { ok: false as const, reason: "lead_not_found" as const };
+    if (!leadRow) return { ok: false as const, reason: input.expectedStageId ? "lead_changed" as const : "lead_not_found" as const };
 
     if (changed) {
       await tx.insert(schema.leadStageEvent).values({
