@@ -36,7 +36,7 @@ import { DeleteConversationDialog } from "./delete-conversation-dialog";
 const HANDOFF_LABELS: Record<string, string> = {
   cliente: "El cliente pidió un humano",
   modelo: "El agente decidió escalar",
-  error: "Error del proveedor de IA",
+  error: "Error técnico del agente o del canal",
   ventana: "Ventana de 24h cerrada",
   manual_reply: "Respondiste desde el teléfono — IA en pausa",
 };
